@@ -1,7 +1,7 @@
 #pragma once
 
 #include <algorithm>
-#include <mutex>
+#include <atomic>
 
 namespace util {
 
@@ -25,20 +25,17 @@ public:
     }
 
     void hold() {
-        std::lock_guard<std::mutex> lock(m_mutex);
         ++m_counter;
     }
 
     bool release() {
-        std::lock_guard<std::mutex> lock(m_mutex);
         --m_counter;
         return m_counter == 0;
     }
 
 private:
     T *m_ptr;
-    size_t m_counter;
-    std::mutex m_mutex;
+    std::atomic<unsigned int>  m_counter;
 };
 
 } // namespace impl
@@ -80,5 +77,10 @@ public:
 private:
     impl::SharedPtrImpl<T> *m_impl;
 };
+
+template <typename T>
+void swap(util::SharedPtr<T> &left, util::SharedPtr<T> &right) {
+    left.swap(right);
+}
 
 } // namespace util
