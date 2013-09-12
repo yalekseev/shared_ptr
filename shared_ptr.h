@@ -24,6 +24,10 @@ public:
         return *m_ptr;
     }
 
+    T * get() const {
+        return m_ptr;
+    }
+
     void hold() {
         ++m_counter;
     }
@@ -45,6 +49,9 @@ class SharedPtr {
 public:
     explicit SharedPtr(T *ptr = 0) : m_impl(new impl::SharedPtrImpl<T>(ptr)) { }
 
+    template <typename U>
+    explicit SharedPtr(U *ptr = 0) : m_impl(new impl::SharedPtrImpl<T>(ptr)) { }
+
     ~SharedPtr() {
         if (m_impl->release()) {
             delete m_impl;
@@ -56,18 +63,40 @@ public:
         m_impl->hold();
     }
 
+    template <typename U>
+    SharedPtr(const SharedPtr<U> &other) {
+        m_impl = other.m_impl;
+        m_impl->hold();
+    }
+
     SharedPtr<T> & operator=(const SharedPtr<T> &other) {
         SharedPtr<T> tmp(other);
         swap(tmp);
         return *this;
     }
 
+    template <typename U>
+    SharedPtr<T> & operator=(const SharedPtr<U> &other) {
+        SharedPtr<T> tmp(other);
+        swap(tmp);
+        return *this;
+    }
+
     T * operator->() const {
-        return m_impl;
+        return m_impl->operator->();
     }
 
     T & operator*() const {
         return **m_impl;
+    }
+
+    template <typename U>
+    bool operator<(const SharedPtr<U> &other) {
+        return m_impl->get() < other.get();
+    }
+
+    T * get() const {
+        return m_impl->get();
     }
 
     void swap(SharedPtr<T> &other) {
