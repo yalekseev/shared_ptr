@@ -82,6 +82,11 @@ void test_deleter() {
     assert(val == 2);
 }
 
+void test_make_shared() {
+    auto ptr = util::make_shared<int>(10);
+    assert(*ptr == 10);
+}
+
 int main() {
     test_copy_assignment();
     test_copy_construction();
@@ -90,6 +95,7 @@ int main() {
     test_pointer_constructor();
     test_swap();
     test_deleter();
+    test_make_shared();
 
     return 0;
 }

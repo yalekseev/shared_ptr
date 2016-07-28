@@ -52,7 +52,7 @@ public:
     }
 
 private:
-    T *m_ptr;
+    T *m_ptr = nullptr;
     std::function<void(T *)> m_deleter;
     std::atomic<unsigned int>  m_counter;
 };
@@ -128,6 +128,11 @@ void swap(util::SharedPtr<T> &left, util::SharedPtr<T> &right) {
     left.swap(right);
 }
 
-// TODO: make_shared()
+
+// quick and dirty version
+template <typename T, class... Args>
+SharedPtr<T> make_shared(Args&&... args) {
+    return SharedPtr<T>(new T(std::forward<Args>(args)...));
+}
 
 } // namespace util
