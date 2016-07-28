@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <algorithm>
 #include <atomic>
 
@@ -7,13 +8,26 @@ namespace util {
 
 namespace impl {
 
+class DefaultDeleter {
+public:
+    template <typename T>
+    void operator()(T *ptr) {
+        delete ptr;
+    }
+};
+
 template <typename T>
 class SharedPtrImpl {
 public:
-    explicit SharedPtrImpl(T *ptr = 0) : m_ptr(ptr), m_counter(1) { }
+    template <typename D = DefaultDeleter>
+    SharedPtrImpl(T *ptr = nullptr, D deleter = D()) : m_ptr(ptr), m_deleter(deleter), m_counter(1) { }
 
     ~SharedPtrImpl() {
-        delete m_ptr;
+        if (m_deleter) {
+            m_deleter(m_ptr);
+        } else {
+            delete m_ptr;
+        }
     }
 
     T * operator->() const {
@@ -39,6 +53,7 @@ public:
 
 private:
     T *m_ptr;
+    std::function<void(T *)> m_deleter;
     std::atomic<unsigned int>  m_counter;
 };
 
@@ -47,10 +62,11 @@ private:
 template <typename T>
 class SharedPtr {
 public:
-    explicit SharedPtr(T *ptr = 0) : m_impl(new impl::SharedPtrImpl<T>(ptr)) { }
+    template <typename D = impl::DefaultDeleter>
+    explicit SharedPtr(T *ptr = nullptr, D deleter = D()) : m_impl(new impl::SharedPtrImpl<T>(ptr, deleter)) { }
 
-    template <typename U>
-    explicit SharedPtr(U *ptr = 0) : m_impl(new impl::SharedPtrImpl<T>(ptr)) { }
+    template <typename U, typename D = impl::DefaultDeleter>
+    explicit SharedPtr(U *ptr = nullptr, D deleter = D()) : m_impl(new impl::SharedPtrImpl<T>(ptr, deleter)) { }
 
     ~SharedPtr() {
         if (m_impl->release()) {
@@ -111,5 +127,7 @@ template <typename T>
 void swap(util::SharedPtr<T> &left, util::SharedPtr<T> &right) {
     left.swap(right);
 }
+
+// TODO: make_shared()
 
 } // namespace util

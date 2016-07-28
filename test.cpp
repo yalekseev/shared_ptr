@@ -70,6 +70,18 @@ void test_swap() {
     assert(*sp2 == 1);
 }
 
+void test_deleter() {
+    int val = 1;
+
+    auto deleter = [&val](int *ptr) -> void { val = 2; };
+
+    {
+        util::SharedPtr<int> sp(new int(), deleter);
+    }
+
+    assert(val == 2);
+}
+
 int main() {
     test_copy_assignment();
     test_copy_construction();
@@ -77,6 +89,7 @@ int main() {
     test_operator_less();
     test_pointer_constructor();
     test_swap();
+    test_deleter();
 
     return 0;
 }
