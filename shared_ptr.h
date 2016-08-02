@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include <functional>
 #include <algorithm>
 #include <atomic>
@@ -16,11 +18,24 @@ public:
     }
 };
 
+class DestructorDeleter {
+public:
+    template <typename T>
+    void operator()(T *ptr) {
+        ptr->~T();
+    }
+};
+
 template <typename T>
 class SharedPtrImpl {
 public:
     template <typename D = DefaultDeleter>
     SharedPtrImpl(T *ptr = nullptr, D deleter = D()) : m_ptr(ptr), m_deleter(deleter), m_counter(1) { }
+
+    template <typename D = DestructorDeleter, class... Args>
+    SharedPtrImpl(T *ptr, D deleter, Args&&... args) : m_ptr(ptr), m_deleter(deleter), m_counter(1) {
+        new (m_ptr) T(std::forward<Args>(args)...);
+    }
 
     ~SharedPtrImpl() {
         if (m_deleter) {
@@ -62,6 +77,8 @@ private:
 template <typename T>
 class SharedPtr {
 public:
+    explicit SharedPtr(impl::SharedPtrImpl<T> * impl) : m_impl(impl) { }
+
     template <typename D = impl::DefaultDeleter>
     explicit SharedPtr(T *ptr = nullptr, D deleter = D()) : m_impl(new impl::SharedPtrImpl<T>(ptr, deleter)) { }
 
@@ -128,11 +145,22 @@ void swap(util::SharedPtr<T> &left, util::SharedPtr<T> &right) {
     left.swap(right);
 }
 
-
-// quick and dirty version
 template <typename T, class... Args>
 SharedPtr<T> make_shared(Args&&... args) {
-    return SharedPtr<T>(new T(std::forward<Args>(args)...));
+    char * ptr = static_cast<char *>(operator new(sizeof(T) * sizeof(impl::SharedPtrImpl<T>)));
+    if (ptr == nullptr) {
+        throw std::bad_alloc();
+    }
+
+    auto t_ptr = reinterpret_cast<T *>(ptr + sizeof(impl::SharedPtrImpl<T>));
+
+    try {
+        auto impl = new(ptr) impl::SharedPtrImpl<T>(t_ptr, impl::DestructorDeleter(), std::forward<T>(args)...);
+        return SharedPtr<T>(impl);
+    } catch (...) {
+        operator delete(ptr);
+        throw;
+    }
 }
 
 } // namespace util
