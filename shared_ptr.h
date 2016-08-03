@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 #include <functional>
 #include <algorithm>
 #include <atomic>
@@ -32,7 +30,7 @@ public:
     template <typename D = DefaultDeleter>
     SharedPtrImpl(T *ptr = nullptr, D deleter = D()) : m_ptr(ptr), m_deleter(deleter), m_counter(1) { }
 
-    template <typename D = DestructorDeleter, class... Args>
+    template <typename D = DestructorDeleter, typename... Args>
     SharedPtrImpl(T *ptr, D deleter, Args&&... args) : m_ptr(ptr), m_deleter(deleter), m_counter(1) {
         new (m_ptr) T(std::forward<Args>(args)...);
     }
@@ -145,7 +143,7 @@ void swap(util::SharedPtr<T> &left, util::SharedPtr<T> &right) {
     left.swap(right);
 }
 
-template <typename T, class... Args>
+template <typename T, typename... Args>
 SharedPtr<T> make_shared(Args&&... args) {
     char * ptr = static_cast<char *>(operator new(sizeof(T) * sizeof(impl::SharedPtrImpl<T>)));
     if (ptr == nullptr) {
