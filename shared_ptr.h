@@ -36,11 +36,7 @@ public:
     }
 
     ~SharedPtrImpl() {
-        if (m_deleter) {
-            m_deleter(m_ptr);
-        } else {
-            delete m_ptr;
-        }
+        m_deleter(m_ptr);
     }
 
     T * operator->() const {
@@ -128,6 +124,15 @@ public:
 
     T * get() const {
         return m_impl->get();
+    }
+
+    template <typename D = impl::DefaultDeleter>
+    void reset(T *ptr = nullptr, D deleter = D()) {
+        if (m_impl->release()) {
+            delete m_impl;
+        }
+
+        m_impl = new impl::SharedPtrImpl<T>(ptr, deleter);
     }
 
     void swap(SharedPtr<T> &other) {
